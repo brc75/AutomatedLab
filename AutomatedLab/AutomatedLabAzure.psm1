@@ -1272,6 +1272,15 @@ function Get-LabAzureAvailableSku
     Group-Object -Property Skus, Offer |
     ForEach-Object { $_.Group | Sort-Object -Property PublishedDate -Descending | Select-Object -First 1 }
 
+    # Server Previews published by HyperV
+    Get-AzureRmVMImagePublisher -Location $Location |
+    Where-Object PublisherName -eq 'microsoft-hyperv' |
+    Get-AzureRmVMImageOffer |
+    Get-AzureRmVMImageSku |
+    Get-AzureRmVMImage |
+    Group-Object -Property Skus, Offer |
+    ForEach-Object { $_.Group | Sort-Object -Property PublishedDate -Descending | Select-Object -First 1 }
+
     # Desktop
     Get-AzureRmVMImagePublisher -Location $Location |
     Where-Object PublisherName -eq 'MicrosoftWindowsDesktop' |
