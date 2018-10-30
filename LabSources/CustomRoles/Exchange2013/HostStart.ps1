@@ -13,7 +13,7 @@ function Copy-ExchangeSources
     $script:exchangeInstallFile = Get-LabInternetFile -Uri $exchangeDownloadLink -Path $downloadTargetFolder -PassThru -ErrorAction Stop
     Write-ScreenInfo -Message "Downloading UCMA from '$ucmaDownloadLink'"
     $script:ucmaInstallFile = Get-LabInternetFile -Uri $ucmaDownloadLink -Path $downloadTargetFolder -PassThru -ErrorAction Stop
-    Write-ScreenInfo -Message "Downloading .net Framework 4.6.2 from '$dotnetDownloadLink'"
+    Write-ScreenInfo -Message "Downloading .net Framework 4.7.1 from '$dotnetDownloadLink'"
     $script:dotnetInstallFile = Get-LabInternetFile -Uri $dotnetDownloadLink -Path $downloadTargetFolder -PassThru -ErrorAction Stop
     Write-ScreenInfo 'finished' -TaskEnd
     
@@ -83,16 +83,26 @@ function Install-ExchangeRequirements
     foreach ($machine in $machines)
     {
         $dotnetFrameworkVersion = Get-LabVMDotNetFrameworkVersion -ComputerName $machine -NoDisplay
-        if ($dotnetFrameworkVersion.Version -lt '4.6.2')
+        if ($dotnetFrameworkVersion.Version -lt '4.7.2')
         {
-            Write-ScreenInfo "Installing .net Framework 4.6.2 on '$machine'" -Type Verbose
+            Write-ScreenInfo "Installing .net Framework 4.7.2 on '$machine'" -Type Verbose
             $jobs += Install-LabSoftwarePackage -ComputerName $machine -LocalPath "C:\Install\$($script:dotnetInstallFile.FileName)" -CommandLine '/q /norestart /log c:\dotnet462.txt' -AsJob -NoDisplay -AsScheduledJob -UseShellExecute -PassThru
         }
         else
         {
-            Write-ScreenInfo ".net Framework 4.6.2 is already installed on '$machine'" -Type Verbose
+            Write-ScreenInfo ".net Framework 4.7.2 is already installed on '$machine'" -Type Verbose
         }
     }
+
+    Write-ScreenInfo -Message "Starting installation of pre-requisite C++ redist on machine '$($machines -join ', ')'" -Type Verbose
+    $cppRedist = Get-LabInternetFile -Uri (Get-Module -Name AutomatedLab).PrivateData.cppredist64 -Path $labsources\SoftwarePackages -PassThru
+    $cppRedist32 = Get-LabInternetFile -Uri (Get-Module -Name AutomatedLab).PrivateData.cppredist32 -Path $labsources\SoftwarePackages -PassThru
+    $cppJobs = @()
+    $cppJobs += Install-LabSoftwarePackage -Path $cppRedist32.FullName -CommandLine ' /quiet /norestart /log C:\DeployDebug\cpp32.log' -ComputerName $machines -AsJob -ExpectedReturnCodes 0,3010 -PassThru
+    $cppJobs += Install-LabSoftwarePackage -Path $cppRedist.FullName -CommandLine ' /quiet /norestart /log C:\DeployDebug\cpp64.log' -ComputerName $machines -AsJob -ExpectedReturnCodes 0,3010 -PassThru
+
+    Write-ScreenInfo -Message "Waiting for pre-requisite Visual C++ redistributable to finish installation on machines '$($machines -join ', ')'" -NoNewLine
+    Wait-LWLabJob -Job $cppJobs -Timeout 10 -NoNewLine -ProgressIndicator 5 -NoDisplay
 
     Wait-LWLabJob -Job $jobs -NoDisplay -ProgressIndicator 20 -NoNewLine
     Write-ScreenInfo done
@@ -271,7 +281,7 @@ function Start-ExchangeInstallation
 }
 
 $ucmaDownloadLink = 'http://download.microsoft.com/download/2/C/4/2C47A5C1-A1F3-4843-B9FE-84C0032C61EC/UcmaRuntimeSetup.exe'
-$exchangeDownloadLink = 'https://download.microsoft.com/download/3/9/B/39B25E37-2265-4FBC-AF87-7CA6CA089615/Exchange2013-x64-cu20.exe'
+$exchangeDownloadLink = 'https://download.microsoft.com/download/9/4/1/94166586-5D17-414A-97DA-CCD069BC11A2/Exchange2013-x64-cu21.exe'
 $dotnetDownloadLink = (Get-Module -Name AutomatedLab -ListAvailable)[0].PrivateData.dotnet462DownloadLink
 
 #----------------------------------------------------------------------------------------------------------------------------------------------------
