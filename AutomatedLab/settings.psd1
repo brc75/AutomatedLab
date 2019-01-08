@@ -50,7 +50,8 @@
         }
         "MachineFileName"                      = "Machines.xml"
         "DiskFileName"                         = "Disks.xml"
-        "LabFileName"                          = "Lab.xml"        
+        "LabFileName"                          = "Lab.xml"
+        ProductKeyFileName                     = 'ProductKeys.xml'
         DefaultAddressSpace                    = '192.168.10.0/24'
         "ValidationSettings"                   = @{
             "ValidRoleProperties"     = @{
